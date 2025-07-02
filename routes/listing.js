@@ -7,13 +7,19 @@ const Listing = require("../models/listing.js");
 const { isLoggedIn } = require("../middleware.js");
 
 const validateListing = (req, res, next) => {
-    let {error} = listingSchema.validate(req.body);
-    
+    // Ensure image is always an object for Joi validation
+    if (typeof req.body.listing.image === "string") {
+        req.body.listing.image = {
+            url: req.body.listing.image,
+            filename: ""
+        };
+    }
+    let { error } = listingSchema.validate(req.body);
+
     if (error) {
         let errMsg = error.details.map((el) => el.message).join(",");
         throw new ExpressError(400, errMsg);
-    }
-    else {
+    } else {
         next();
     }
 }
@@ -41,13 +47,15 @@ router.get("/:id", wrapAsync (async (req, res) => {
 }));
 
 //Create Route
-router.post("/",isLoggedIn,
-validateListing,
- wrapAsync(async (req, res, next) => {
-  const newListing = new Listing(req.body.listing);
-  await newListing.save();
-  req.flash("success", "Successfully created a new listing!");
-  res.redirect("/listings");
+router.post("/", isLoggedIn, validateListing, wrapAsync(async (req, res) => {
+    // Ensure image object is complete
+    if (req.body.listing.image && typeof req.body.listing.image === "object") {
+        req.body.listing.image.filename = req.body.listing.image.filename || "";
+    }
+    const newListing = new Listing(req.body.listing);
+    await newListing.save();
+    req.flash("success", "Successfully created a new listing!");
+    res.redirect("/listings");
 }));
 
 //Edit Route

@@ -17,9 +17,10 @@
       </div>
 
       <div class="mb-3">
-      <label for="image" class="form-label">Image Link</label>
-      <input name="listing[image]" value="<%= listing.image %>" type="text" class="form-control" required/>
+      <label for="image" class="form-label">Upload new Image</label>
+      <input name="listing[image][url]" type="text" class="form-control" value="<%= listing.image.url %>" />
       </div>
+      <img src="<%= listing.image.url %>" alt="Current Image" style="max-width: 200px;"/>
 
       <div class="row col-md-4">
       <div class="mb-3">
@@ -51,4 +52,3 @@
     </form>
     </div>
     </div>
-    
