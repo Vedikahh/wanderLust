@@ -4,6 +4,13 @@
   <div class="col-6 offset-3">
     <h3>Login</h3>
     <br>
+    <% if (error && error.length > 0) { %>
+      <% error.forEach(function(msg) { %>
+        <div class="alert alert-danger">
+          <%= msg %>
+        </div>
+      <% }) %>
+    <% } %>
     <form method="POST" action="/login" novalidate class="needs-validation" nonvalidate>
       <div class="mb-3">
         <label for="username" class="form-label">Username</label>

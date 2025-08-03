@@ -1,3 +1,7 @@
+if(process.env.NODE_ENV !== "production") {
+    require("dotenv").config(); // Load environment variables from .env file
+}
+
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
@@ -6,6 +10,7 @@ const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
 const ExpressError = require("./utils/ExpressError.js");
 const session = require("express-session");
+const mongoStore = require("connect-mongo"); // For storing session in MongoDB,
 const flash = require("connect-flash");
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
@@ -15,7 +20,8 @@ const listingRouter = require("./routes/listing.js");
 const reviewRouter = require("./routes/review.js");
 const userRouter = require("./routes/user.js");
 
-const MONGO_URL = "mongodb://127.0.0.1:27017/wanderlust";
+// const MONGO_URL = "mongodb://127.0.0.1:27017/wanderlust";
+const dbUrl = process.env.ATLASDB_URL;
 
 main()
     .then(() => {
@@ -26,7 +32,7 @@ main()
     });
 
 async function main() {
-    await mongoose.connect(MONGO_URL);
+    await mongoose.connect(dbUrl);
 }
 
 app.set("view engine", "ejs");
@@ -36,20 +42,33 @@ app.use(methodOverride("_method"));
 app.engine('ejs', ejsMate);
 app.use(express.static(path.join(__dirname, "public")));
 
+const store = mongoStore.create({
+    mongoUrl: dbUrl,
+    crypto: {
+        secret: process.env.SECRET, // secret for encrypting session data
+    },
+    touchAfter: 24 * 3600, // time in seconds after which session will be updated
+});
+
+store.on("error", (err) => {
+    console.log("Session store error", err);
+});
+
 const sessionOptions = {
-    secret: "mysupersecretcode",
+    store,
+    secret: process.env.SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: {
-        expiers: Date.now() + 1000 * 60 * 60 * 24 * 7, // 1 week
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-        httpOnly: true, // prevents client-side JavaScript from accessing the cookie
+        expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+        httpOnly: true,
     }
 }
 
-app.get("/", (req, res) => {
-    res.send("Hi I'm root");
-});
+// app.get("/", (req, res) => {
+//     res.send("Hi I'm root");
+// });
 
 app.use(session(sessionOptions));
 app.use(flash());
@@ -88,6 +107,7 @@ app.all(/.*/, (req, res, next) => {
 
 app.use((err, req, res, next) => {
     let { statusCode = 500, message = "Something went wrong" } = err;
+    console.error(err); // Make sure this matches the parameter name above
     res.status(statusCode).render("error.ejs", { message });
 });
 
